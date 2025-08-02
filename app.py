@@ -4,7 +4,7 @@ import os
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import nats
 from nats.aio.client import Client as NATS
 from dotenv import load_dotenv
@@ -90,6 +90,9 @@ class EncountersService:
             await self.nc.subscribe("htpi.encounters.list", cb=self.handle_list_encounters)
             await self.nc.subscribe("htpi.encounters.get", cb=self.handle_get_encounter)
             await self.nc.subscribe("htpi.encounters.list.for.patient", cb=self.handle_list_patient_encounters)
+            
+            # Subscribe to health check requests
+            await self.nc.subscribe("htpi.health.htpi.encounters.service", cb=self.handle_health_check)
             
             logger.info("Encounters service subscriptions established")
         except Exception as e:
@@ -285,8 +288,45 @@ class EncountersService:
         except Exception as e:
             logger.error(f"Error in handle_get_encounter: {str(e)}")
     
+    async def handle_health_check(self, msg):
+        """Handle health check requests"""
+        try:
+            data = json.loads(msg.data.decode())
+            request_id = data.get('requestId')
+            client_id = data.get('clientId')
+            
+            # Calculate uptime
+            uptime = datetime.utcnow() - self.start_time if hasattr(self, 'start_time') else timedelta(0)
+            
+            health_response = {
+                'serviceId': 'htpi-encounters-service',
+                'status': 'healthy',
+                'message': 'Encounters service operational',
+                'version': '1.0.0',
+                'uptime': str(uptime),
+                'requestId': request_id,
+                'clientId': client_id,
+                'timestamp': datetime.utcnow().isoformat(),
+                'stats': {
+                    'total_encounters': len(MOCK_ENCOUNTERS),
+                    'encounters_today': len([e for e in MOCK_ENCOUNTERS.values() 
+                                           if e['date'].startswith(datetime.utcnow().date().isoformat())])
+                }
+            }
+            
+            # Send response back to admin portal
+            await self.nc.publish(f"admin.health.response.{client_id}", 
+                                json.dumps(health_response).encode())
+            
+            logger.info(f"Health check response sent for request {request_id}")
+            
+        except Exception as e:
+            logger.error(f"Error handling health check: {str(e)}")
+    
     async def run(self):
         """Run the service"""
+        self.start_time = datetime.utcnow()
+        
         await self.connect()
         logger.info("Encounters service is running...")
         
