@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 NATS_URL = os.environ.get('NATS_URL', 'nats://localhost:4222')
+NATS_USER = os.environ.get('NATS_USER')
+NATS_PASSWORD = os.environ.get('NATS_PASSWORD')
 
 # Mock encounters database (in production, would use MongoDB)
 MOCK_ENCOUNTERS = {
@@ -73,7 +75,13 @@ class EncountersService:
     async def connect(self):
         """Connect to NATS"""
         try:
-            self.nc = await nats.connect(NATS_URL)
+            # Build connection options
+            options = {}
+            if NATS_USER and NATS_PASSWORD:
+                options['user'] = NATS_USER
+                options['password'] = NATS_PASSWORD
+            
+            self.nc = await nats.connect(NATS_URL, **options)
             logger.info(f"Connected to NATS at {NATS_URL}")
             
             # Subscribe to encounter requests
