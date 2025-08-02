@@ -1,0 +1,13 @@
+{
+  "name": "htpi-encounters-service",
+  "version": "1.0.0",
+  "description": "HTPI Encounters Management Service",
+  "main": "app.py",
+  "scripts": {
+    "start": "python app.py",
+    "dev": "python app.py"
+  },
+  "keywords": ["htpi", "encounters", "visits", "microservice"],
+  "author": "HTPI",
+  "license": "ISC"
+}
