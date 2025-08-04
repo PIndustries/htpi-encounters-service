@@ -76,12 +76,17 @@ class EncountersService:
         """Connect to NATS"""
         try:
             # Build connection options
-            options = {}
+            options = {
+                'servers': [NATS_URL],
+                'name': 'htpi-encounters-service',
+                'reconnect_time_wait': 2,
+                'max_reconnect_attempts': -1
+            }
             if NATS_USER and NATS_PASS:
                 options['user'] = NATS_USER
                 options['password'] = NATS_PASS
             
-            self.nc = await nats.connect(NATS_URL, **options)
+            self.nc = await nats.connect(**options)
             logger.info(f"Connected to NATS at {NATS_URL}")
             
             # Subscribe to encounter requests
@@ -92,7 +97,8 @@ class EncountersService:
             await self.nc.subscribe("htpi.encounters.list.for.patient", cb=self.handle_list_patient_encounters)
             
             # Subscribe to health check requests
-            await self.nc.subscribe("htpi.health.htpi.encounters.service", cb=self.handle_health_check)
+            await self.nc.subscribe("health.check", cb=self.handle_health_check)
+            await self.nc.subscribe("htpi-encounters-service.health", cb=self.handle_health_check)
             
             logger.info("Encounters service subscriptions established")
         except Exception as e:
