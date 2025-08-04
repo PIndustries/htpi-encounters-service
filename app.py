@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 NATS_URL = os.environ.get('NATS_URL', 'nats://localhost:4222')
 NATS_USER = os.environ.get('NATS_USER')
-NATS_PASS = os.environ.get('NATS_PASS')
+NATS_PASS = os.environ.get('NATS_PASSWORD')
 
 # Mock encounters database (in production, would use MongoDB)
 MOCK_ENCOUNTERS = {
